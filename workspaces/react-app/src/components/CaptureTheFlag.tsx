@@ -12,7 +12,7 @@ declare let window: { ethereum: any }
 
 interface CtfState {
   error?: string
-  current?: string
+  // current?: string
   contractAddress?: string
   account?: string
   events?: any[]
@@ -80,35 +80,36 @@ export class CaptureTheFlag extends Component {
     }
     const ctf = this.ctf = await initCtf(this.state.paymasterDetails)
 
+    console.log("HILMAN ",ctf.address);
+
     this.gsnProvider = ctf.gsnProvider
     if (await (ctf.ethersProvider as Web3Provider).listAccounts().then(arr => arr.length) === 0) {
       throw new Error('Connect metamask first')
     }
-    const [current, account] = await Promise.all([
-      ctf.getCurrentFlagHolder(),
+    const [account] = await Promise.all([
+      // ctf.getCurrentFlagHolder(),
       ctf.getSigner()
     ])
 
     this.setState({
       contractAddress: ctf.address,
-      account,
-      current,
+      account
     })
-    ctf.getPastEvents().then(events => {
-      this.setState({
-        events: this.prependEvents(undefined, events),
-      })
-    })
+    // ctf.getPastEvents().then(events => {
+    //   this.setState({
+    //     events: this.prependEvents(undefined, events),
+    //   })
+    // })
 
-    ctf.listenToEvents(event => {
-      this.log(event)
-      this.setState({
-        current: event.currentHolder
-      })
-    }, ({ event, step, total }) => {
-      console.log({ event, step, total })
-      this.progress({ event, step, total })
-    })
+    // ctf.listenToEvents(event => {
+    //   this.log(event)
+    //   this.setState({
+    //     current: event.currentHolder
+    //   })
+    // }, ({ event, step, total }) => {
+    //   console.log({ event, step, total })
+    //   this.progress({ event, step, total })
+    // })
   }
 
   // @ts-ignore
@@ -121,7 +122,7 @@ export class CaptureTheFlag extends Component {
   }
 
   componentWillUnmount () {
-    this.ctf!.stopListenToEvents()
+    // this.ctf!.stopListenToEvents()
   }
 
   async simSend () {
@@ -145,9 +146,11 @@ export class CaptureTheFlag extends Component {
   }
 
   async doCapture () {
+    console.log("MULAI...")
     this.setState({ status: 'sending' })
+    // const res = await this.ctf!.capture()
     const res = await this.ctf!.capture()
-    this.setState({ status: 'txhash=' + res.hash.slice(0, 20) + ' waiting for mining' })
+    this.setState({ status: 'txhash= waiting for mining' })
     const res2 = await res.wait()
     console.log('mined!')
     this.setState({ total: null, step: null, status: 'Mined in block: ' + res2.blockNumber })
@@ -192,8 +195,8 @@ export class CaptureTheFlag extends Component {
       <br/>
       Your account:<Address addr={this.state.account}/> <br/>
       CTF Contract: <Address addr={this.state.contractAddress}/><br/>
-      Current flag holder: <Address addr={this.state.current}/>
-      {this.state.current && this.state.current === this.state.account && '(you!)'}
+      {/* Current flag holder: <Address addr={this.state.current}/> */}
+      {/* {this.state.current && this.state.current === this.state.account && '(you!)'} */}
       <br/>
 
       {this.state.error ?

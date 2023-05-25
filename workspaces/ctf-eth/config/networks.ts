@@ -39,7 +39,8 @@ function getLocalNetwork (): { paymaster: PaymasterDetails, ctf: string } | unde
       debugUseType: false
     }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const ctf = require('../../../ctf-eth/deployments/development/CaptureTheFlag.json').address
+    // const ctf = require('../../../ctf-eth/deployments/development/CaptureTheFlag.json').address
+    const ctf = require('../../../ctf-eth/deployments/development/PermitSignatureGSN.json').address
     return { paymaster, ctf }
   } catch (e) {
     console.warn('No local network:', (e as Error).message)

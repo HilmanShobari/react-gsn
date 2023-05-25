@@ -5,7 +5,19 @@ import { TokenPaymasterProvider } from '@opengsn/paymasters'
 
 import { Contract, ethers, EventFilter, providers, Signer } from 'ethers'
 
-import * as CtfArtifact from '../artifacts/contracts/CaptureTheFlag.sol/CaptureTheFlag.json'
+// import * as CtfArtifact from '../artifacts/contracts/CaptureTheFlag.sol/CaptureTheFlag.json'
+import * as PermitArtifact from '../artifacts/contracts/PermitSignatureGSN.sol/PermitSignatureGSN.json'
+
+import {
+  // permit2 contract address
+  PERMIT2_ADDRESS,
+  // the type of permit that we need to sign
+  PermitTransferFrom,
+  // Witness type
+  Witness,
+  // this will help us get domain, types and values that we need to create a signature
+  SignatureTransfer,
+} from "@uniswap/permit2-sdk";
 
 declare let window: { ethereum: any, location: any }
 declare let global: { network: any }
@@ -48,13 +60,13 @@ export class Ctf {
     this.ethersProvider = signer.provider!
 
     this.gsnProvider = gsnProvider
-    this.theContract = new ethers.Contract(address, CtfArtifact.abi, signer)
+    this.theContract = new ethers.Contract(address, PermitArtifact.abi, signer)
     this.blockDates = {}
   }
 
-  async getCurrentFlagHolder (): Promise<string> {
-    return this.theContract.currentHolder()
-  }
+  // async getCurrentFlagHolder (): Promise<string> {
+  //   return this.theContract.currentHolder()
+  // }
 
   listenToEvents (onEvent: (e: EventInfo) => void, onProgress?: (e: GsnEvent) => void): void {
     // @ts-expect-error
@@ -63,7 +75,7 @@ export class Ctf {
       onEvent(info)
     }
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
-    this.theContract.on('FlagCaptured', listener)
+    // this.theContract.on('FlagCaptured', listener)
     if (onProgress != null) {
       this.gsnProvider.registerEventListener(onProgress)
     }
@@ -103,7 +115,7 @@ export class Ctf {
     const lookupWindow = global.network?.relayLookupWindowBlocks ?? 30 * 24 * 3600 / 12
     const startBlock = Math.max(1, currentBlock - lookupWindow)
 
-    const logs = await this.theContract.queryFilter(this.theContract.filters.FlagCaptured(), startBlock)
+    const logs = await this.theContract.queryFilter(this.theContract.yangPunya(), startBlock)
       .catch(e => [])
     return await Promise.all(logs.slice(-count).map(async e => await this.getEventInfo(e)))
   }
@@ -112,16 +124,79 @@ export class Ctf {
     return await this.theContract.signer.getAddress()
   }
 
+  // async capture (): Promise<any> {
+  //   // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  //   this.ethersProvider.getGasPrice().then(price => console.log('== gas price=', price.toString()))
+  //   const gasFees = await this.gsnProvider.calculateGasFees()
+  //   gasFees.maxPriorityFeePerGas = gasFees.maxFeePerGas
+  //   console.log('gas fees=', gasFees)
+  //   const gasLimit = 1e5
+  //   const ret = await this.theContract.captureTheFlag({ gasLimit, ...gasFees })
+  //   console.log('post-capture ret=', ret)
+  //   return ret
+  // }
+
   async capture (): Promise<any> {
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.ethersProvider.getGasPrice().then(price => console.log('== gas price=', price.toString()))
-    const gasFees = await this.gsnProvider.calculateGasFees()
-    gasFees.maxPriorityFeePerGas = gasFees.maxFeePerGas
-    console.log('gas fees=', gasFees)
-    const gasLimit = 1e5
-    const ret = await this.theContract.captureTheFlag({ gasLimit, ...gasFees })
-    console.log('post-capture ret=', ret)
-    return ret
+      const provider = new ethers.providers.Web3Provider((window as any).ethereum)
+      const signer = provider.getSigner();
+
+      const erc20Address = "0x9c7dadcB1C5588a05721EF26B70faB583EB1094C" //token contract address
+      const contractAddress = this.theContract.address //protocol contract address
+
+      const network = await provider.getNetwork()
+      const CHAIN_ID = network.chainId
+
+      const ownerAddress = await this.theContract.owner()
+      const amount = ethers.utils.parseEther("2")
+
+      const permit: PermitTransferFrom = {
+        permitted: {
+          // token we are permitting to be transferred
+          token: erc20Address,
+          // amount we are permitting to be transferred
+          amount: amount,
+        },
+        // who can transfer the tokens
+        spender: contractAddress,
+        nonce: parseInt((Math.random() * 10**9).toString()),
+        // signature deadline
+        deadline: ethers.constants.MaxUint256,
+      }
+
+      const witness: Witness = {
+        // type name that matches the struct that we created in contract
+        witnessTypeName: "Witness",
+        // type structure that matches the struct
+        witnessType: { Witness: [{ name: "user", type: "address" }] },
+        // the value of the witness.
+        // USER_ADDRESS is the address that we want to give the tokens to
+        witness: { user: ownerAddress },
+      }
+
+      const { domain, types, values } = SignatureTransfer.getPermitData(
+        permit,
+        PERMIT2_ADDRESS,
+        CHAIN_ID,
+        witness
+      )
+
+      console.log("ADDRESS PROTOCOL CONTRACT :", this.theContract.address)
+      
+      let signature = await signer._signTypedData(domain, types, values)
+
+      console.log("OWNER :", await this.theContract.owner())
+      console.log("YANG PUNYA :", await this.theContract.yangPunya())
+
+      const ret = await this.theContract.deposit(
+        amount,
+        erc20Address,
+        ownerAddress,
+        ownerAddress,
+        permit,
+        signature,
+      )
+      
+      return ret
   }
 
   async getGsnStatus (): Promise<GsnStatusInfo> {
@@ -148,7 +223,7 @@ export class Ctf {
     const pm = await ci._createPaymaster(address)
     const v = await pm.versionPaymaster()
 
-    console.log('getPaymasterVersion', v)
+    console.log('getPaymasterVersion HILMAN', v)
     return v
   }
 }
@@ -156,7 +231,7 @@ export class Ctf {
 export async function switchNetwork (id: string): Promise<void> {
   // hexlify and even "hexlify(parseInt(id))" doesn't work for "5"
   const hexChain = '0x' + parseInt(id).toString(16)
-  console.log('change network to ', hexChain)
+  console.log('change network to HILMAN', hexChain)
   const provider = window.ethereum
   await provider.request({
     method: 'wallet_switchEthereumChain',
@@ -177,11 +252,11 @@ export async function initCtf (paymasterDetails: PaymasterDetails): Promise<Ctf>
   if (web3Provider == null) { throw new Error('No "window.ethereum" found. do you have Metamask installed?') }
 
   web3Provider.on('chainChanged', (chainId: number) => {
-    console.log('chainChanged', chainId)
+    console.log('chainChanged HILMAN', chainId)
     window.location.reload()
   })
   web3Provider.on('accountsChanged', (accs: any[]) => {
-    console.log('accountChanged', accs)
+    console.log('accountChanged HILMAN', accs)
     window.location.reload()
   })
 
@@ -205,6 +280,7 @@ export async function initCtf (paymasterDetails: PaymasterDetails): Promise<Ctf>
 
   const chainId = network.chainId
   const net = global.network = networks[chainId]
+  console.log("HILMAN NETWORK :", net)
   const netid: string = await provider.send('net_version', [])
   console.log('chainid=', chainId, 'networkid=', netid)
   if (chainId !== parseInt(netid)) { console.warn(`Incompatible network-id ${netid} and ${chainId}: for Metamask to work, they should be the same`) }
@@ -253,7 +329,7 @@ export async function initCtf (paymasterDetails: PaymasterDetails): Promise<Ctf>
 
   const signer = provider2.getSigner()
 
-  return new Ctf(net.ctf, signer, gsnProvider, chainId, paymasterDetails)
+  return new Ctf("0x4376Be136e21Ac19487A2EE4D82cBa3C2A9C25A7", signer, gsnProvider, chainId, paymasterDetails)
 }
 
 export async function getSupportedPaymasters (): Promise<PaymasterDetails[]> {

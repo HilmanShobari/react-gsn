@@ -38,7 +38,8 @@ module.exports = async function ({ getNamedAccounts, ethers, deployments }) {
   }
 
   const signer = ethers.provider.getSigner()
-  const ret = await deploy('CaptureTheFlag', { gasPrice, from: deployer, args: [forwarder], log: true })
+  // const ret = await deploy('CaptureTheFlag', { gasPrice, from: deployer, args: [forwarder], log: true })
+  const ret = await deploy('PermitSignatureGSN', { gasPrice, from: deployer, args: ["0x000000000022D473030F116dDEE9F6B43aC78BA3", forwarder], log: true })
   const ctf = await new ethers.Contract(ret.address, ret.abi, signer)
   console.log('ctf address=', ctf.address)
 }

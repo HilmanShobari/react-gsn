@@ -31,7 +31,7 @@ const infura = process.env.INFURA_ID
 // defaultNetwork, networks, solc, and paths.
 // Go to https://buidler.dev/config/ to learn more
 module.exports = {
-  solidity: '0.8.12',
+  solidity: '0.8.17',
   defaultNetwork: 'development',
   networks: {
     hardhat: {
