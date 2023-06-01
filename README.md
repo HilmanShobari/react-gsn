@@ -28,8 +28,9 @@ yarn gsn
 4. Deploy the CTF contract:
 ```
 yarn deploy
-```
+``` 
 
+DONT FORGET TO RESTART SERVER AFTER MODIFY PROJECT!
 5. Launch the React app:
 ```
 yarn start

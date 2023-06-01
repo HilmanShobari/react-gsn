@@ -146,7 +146,9 @@ export class Ctf {
       const network = await provider.getNetwork()
       const CHAIN_ID = network.chainId
 
-      const ownerAddress = await this.theContract.owner()
+      const ownerAddress = await signer.getAddress()
+
+      console.log("TOkEN PUNYA SIAPA YAA", ownerAddress)
       const amount = ethers.utils.parseEther("2")
 
       const permit: PermitTransferFrom = {
@@ -185,7 +187,7 @@ export class Ctf {
       let signature = await signer._signTypedData(domain, types, values)
 
       console.log("OWNER :", await this.theContract.owner())
-      console.log("YANG PUNYA :", await this.theContract.yangPunya())
+      console.log("YANG PUNYA AKUN:", await this.theContract.yangPunya())
 
       const ret = await this.theContract.deposit(
         amount,
