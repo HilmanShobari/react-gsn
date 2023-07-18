@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.17;
 
 import {ISignatureTransfer} from "./interfaces/ISignatureTransfer.sol";
@@ -7,16 +6,6 @@ import "@opengsn/contracts/src/ERC2771Recipient.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PermitSignatureGSN is ERC2771Recipient, Ownable  {
-    string public yangPunya = "Hilman";
-
-    string private constant WITNESS_TYPE_STRING = "Witness witness)TokenPermissions(address token,uint256 amount)Witness(address user)";
-    bytes32 private constant WITNESS_TYPEHASH = keccak256("Witness(address user)");
-
-    struct Witness {
-        // Address of the user that signer is giving the tokens to
-        address user;
-    }
-
     ISignatureTransfer public immutable PERMIT2;
 
     constructor(ISignatureTransfer _permit, address forwarder) {
@@ -24,31 +13,28 @@ contract PermitSignatureGSN is ERC2771Recipient, Ownable  {
         _setTrustedForwarder(forwarder);
     }
 
-    mapping (address => mapping (address => uint256)) public tokenBalancesByUser;
+    ISignatureTransfer.SignatureTransferDetails[] internal SignatureTransferDetails;
 
-    function deposit(
-        uint256 _amount,
-        address _token,
+    function transfer(
+        uint256[] memory _amount,
+        address[] memory _token,
+        address[] memory _recipient,
         address _owner,
-        address _user,
-        ISignatureTransfer.PermitTransferFrom calldata _permit,
+        ISignatureTransfer.PermitBatchTransferFrom calldata _permit,
         bytes calldata _signature
     ) external {
-        tokenBalancesByUser[_user][_token] += _amount;
+        delete SignatureTransferDetails;
 
-        address Acc2 = 0xE5B78452B963Ee246c7043ecEb378367d2b0b862;
+        for (uint i = 0; i < _token.length; i++) {
+            ISignatureTransfer.SignatureTransferDetails storage SignatureTransferDetail = SignatureTransferDetails.push();
+            SignatureTransferDetail.to = _recipient[i];
+            SignatureTransferDetail.requestedAmount = _amount[i];
+        }
 
-        PERMIT2.permitWitnessTransferFrom(
+        PERMIT2.permitTransferFrom(
             _permit,
-            ISignatureTransfer.SignatureTransferDetails({
-                to: Acc2,
-                requestedAmount: _amount
-            }),
+            SignatureTransferDetails,
             _owner,
-            // witness
-            keccak256(abi.encode(WITNESS_TYPEHASH,Witness(_user))),
-            // witnessTypeString,
-            WITNESS_TYPE_STRING,
             _signature
         );
     }

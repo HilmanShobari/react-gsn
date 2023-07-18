@@ -1,7 +1,7 @@
 // @ts-ignore
 import React from 'react';
 import './App.css';
-import {CaptureTheFlag} from './components/CaptureTheFlag'
+import {TransferWithGSN} from './components/TransferWithGSN'
 import {CtfInfo} from './components/CtfInfo'
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
     <div className="App">
       <header className="App-header">
         { window.ethereum !== undefined
-        ? <CaptureTheFlag/>
+        ? <TransferWithGSN/>
         : <NoWalletInstalledWarning /> }
 	<CtfInfo/>
       </header>

@@ -35,5 +35,5 @@ DONT FORGET TO RESTART SERVER AFTER MODIFY PROJECT!
 ```
 yarn start
 ```
- 
+To Run this app just run "yarn install" & "yarn start" 
 A live deployment of this app is available at https://ctf-react.opengsn.org

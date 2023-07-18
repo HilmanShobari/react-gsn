@@ -1,6 +1,6 @@
 {
-  "short_name": "Capture the Flag",
-  "name": "Create Capture the Flag Sample",
+  "short_name": "Transfer with GSN",
+  "name": "Create Transfer with GSN Sample",
   "icons": [
     {
       "src": "favicon.ico",
